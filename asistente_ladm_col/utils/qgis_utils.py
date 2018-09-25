@@ -29,7 +29,8 @@ from qgis.core import (QgsGeometry, QgsLineString, QgsDefaultValue, QgsProject,
                        QgsMultiPoint, QgsMultiLineString, QgsGeometryCollection,
                        QgsApplication, QgsProcessingFeedback, QgsRelation,
                        QgsExpressionContextUtils, QgsEditorWidgetSetup,
-                       QgsLayerTreeGroup)
+                       QgsLayerTreeGroup,
+                       QgsProperty)
 from qgis.PyQt.QtCore import (Qt, QObject, pyqtSignal, QCoreApplication,
                               QVariant, QSettings, QLocale, QUrl, QFile)
 
@@ -524,7 +525,7 @@ class QGISUtils(QObject):
     def set_node_visibility(self, layer, mode, visible):
         self.set_node_visibility_requested.emit(layer, mode, visible)
 
-    def copy_csv_to_db(self, csv_path, delimiter, longitude, latitude, db, target_layer_name):
+    def copy_csv_to_db(self, csv_path, delimiter, longitude, latitude, db, target_layer_name, elevation=None):
         if not csv_path or not os.path.exists(csv_path):
             self.message_emitted.emit(
                 QCoreApplication.translate("QGISUtils",
@@ -541,6 +542,13 @@ class QGISUtils(QObject):
               DEFAULT_EPSG
            )
         csv_layer = QgsVectorLayer(uri, os.path.basename(csv_path), "delimitedtext")
+        if elevation:
+            res = processing.run("qgis:setzvalue",
+                {'INPUT': csv_layer,
+                'Z_VALUE': QgsProperty.fromExpression('\"{}\"'.format(elevation)),
+                'OUTPUT': 'memory:'})
+            csv_layer = res['OUTPUT']
+
         if not csv_layer.isValid():
             self.message_emitted.emit(
                 QCoreApplication.translate("QGISUtils",

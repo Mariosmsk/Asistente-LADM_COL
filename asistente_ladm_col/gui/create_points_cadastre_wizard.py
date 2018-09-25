@@ -209,7 +209,8 @@ class CreatePointsCadastreWizard(QWizard, WIZARD_UI):
                                     self.cbo_longitude.currentText(),
                                     self.cbo_latitude.currentText(),
                                     self._db,
-                                    target_layer)
+                                    target_layer,
+                                    self.cbo_elevation.currentText())
     def file_path_changed(self):
         self.autodetect_separator()
         self.fill_long_lat_combos("")
@@ -232,28 +233,39 @@ class CreatePointsCadastreWizard(QWizard, WIZARD_UI):
         csv_path = self.txt_file_path.text().strip()
         self.cbo_longitude.clear()
         self.cbo_latitude.clear()
+        self.cbo_elevation.clear()
         if os.path.exists(csv_path):
             self.button(QWizard.FinishButton).setEnabled(True)
 
             fields = self.get_fields_from_csv_file(csv_path)
+            fields_dict = {field: field.lower() for field in fields}
             if not fields:
                 self.button(QWizard.FinishButton).setEnabled(False)
                 return
 
             self.cbo_longitude.addItems(fields)
             self.cbo_latitude.addItems(fields)
+            self.cbo_elevation.addItems(fields)
 
-            # Heuristics to suggest values for x and y
+            # Heuristics to suggest values for x,y and z
             x_potential_names = ['x', 'lon', 'long', 'longitud', 'longitude', 'este', 'east', 'oeste', 'west']
             y_potential_names = ['y', 'lat', 'latitud', 'latitude', 'norte', 'north']
+            z_potential_names = ['z', 'altura', 'elevacion', 'elevation', 'elevación', 'height']
             for x_potential_name in x_potential_names:
-                if x_potential_name in fields:
-                    self.cbo_longitude.setCurrentText(x_potential_name)
-                    break
+                for k,v in fields_dict.items():
+                    if x_potential_name == v:
+                        self.cbo_longitude.setCurrentText(k)
+                        break
             for y_potential_name in y_potential_names:
-                if y_potential_name in fields:
-                    self.cbo_latitude.setCurrentText(y_potential_name)
-                    break
+                for k, v in fields_dict.items():
+                    if y_potential_name == v:
+                        self.cbo_latitude.setCurrentText(k)
+                        break
+            for z_potential_name in z_potential_names:
+                for k, v in fields_dict.items():
+                    if z_potential_name == v:
+                        self.cbo_elevation.setCurrentText(k)
+                        break
 
         else:
             self.button(QWizard.FinishButton).setEnabled(False)
