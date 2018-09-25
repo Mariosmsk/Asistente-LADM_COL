@@ -525,7 +525,7 @@ class QGISUtils(QObject):
     def set_node_visibility(self, layer, mode, visible):
         self.set_node_visibility_requested.emit(layer, mode, visible)
 
-    def copy_csv_to_db(self, csv_path, delimiter, longitude, latitude, db, target_layer_name, elevation=None):
+    def copy_csv_to_db(self, csv_path, delimiter, longitude, latitude, db, target_layer, elevation=None):
         if not csv_path or not os.path.exists(csv_path):
             self.message_emitted.emit(
                 QCoreApplication.translate("QGISUtils",
@@ -557,7 +557,7 @@ class QGISUtils(QObject):
             return False
 
         # Skip checking point overlaps if layer is Surver points
-        if target_layer_name != SURVEY_POINT_TABLE:
+        if target_layer.name() != SURVEY_POINT_TABLE:
             overlapping = self.geometry.get_overlapping_points(csv_layer) # List of lists of ids
             overlapping = [id for items in overlapping for id in items] # Build a flat list of ids
 
@@ -571,18 +571,17 @@ class QGISUtils(QObject):
                 self.zoom_to_selected_requested.emit()
                 return False
 
-        target_point_layer = self.get_layer(db, target_layer_name, load=True)
-        if target_point_layer is None:
+        if target_layer is None:
             self.message_emitted.emit(
                 QCoreApplication.translate("QGISUtils",
-                                           "The point layer '{}' couldn't be found in the DB... {}").format(target_layer_name, db.get_description()),
+                                           "The point layer '{}' couldn't be found in the DB... {}").format(target_layer.name(), db.get_description()),
                 Qgis.Warning)
             return False
 
         # Define a mapping between CSV and target layer
         mapping = dict()
-        for target_idx in target_point_layer.fields().allAttributesList():
-            target_field = target_point_layer.fields().field(target_idx)
+        for target_idx in target_layer.fields().allAttributesList():
+            target_field = target_layer.fields().field(target_idx)
             csv_idx = csv_layer.fields().indexOf(target_field.name())
             if csv_idx != -1 and target_field.name() != ID_FIELD:
                 mapping[target_idx] = csv_idx
@@ -591,12 +590,12 @@ class QGISUtils(QObject):
         new_features = []
         for in_feature in csv_layer.getFeatures():
             attrs = {target_idx: in_feature[csv_idx] for target_idx, csv_idx in mapping.items()}
-            new_feature = QgsVectorLayerUtils().createFeature(target_point_layer, in_feature.geometry(), attrs)
+            new_feature = QgsVectorLayerUtils().createFeature(target_layer, in_feature.geometry(), attrs)
             new_features.append(new_feature)
 
-        target_point_layer.dataProvider().addFeatures(new_features)
+        target_layer.dataProvider().addFeatures(new_features)
 
-        QgsProject.instance().addMapLayer(target_point_layer)
+        QgsProject.instance().addMapLayer(target_layer)
         self.zoom_full_requested.emit()
         self.message_emitted.emit(
             QCoreApplication.translate("QGISUtils",

@@ -462,7 +462,7 @@
                  <widget class="QComboBox" name="cbo_elevation"/>
                 </item>
                 <item row="3" column="0">
-                 <widget class="QLabel" name="label_4">
+                 <widget class="QLabel" name="labelZ">
                   <property name="text">
                    <string>Elevation field</string>
                   </property>
